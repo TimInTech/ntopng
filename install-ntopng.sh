@@ -1,29 +1,33 @@
 #!/bin/bash
 
-echo "=== [1/7] System wird aktualisiert... ==="
-sudo apt update && sudo apt upgrade -y
+# Farben für Hervorhebung
+GRÜN='\033[0;32m'
+NC='\033[0m' # Keine Farbe
 
-echo "=== [2/7] Grundlegende Tools installieren... ==="
-sudo apt install -y wget curl nano sudo software-properties-common gnupg lsb-release apt-transport-https
+echo -e "${GRÜN}=== [1/7] System wird aktualisiert... ===${NC}"
+sudo apt-get update && sudo apt-get upgrade -y
 
-echo "=== [3/7] Netzwerkschnittstelle ermitteln... ==="
+echo -e "${GRÜN}=== [2/7] Grundlegende Tools installieren... ===${NC}"
+sudo apt-get install -y wget curl nano sudo software-properties-common gnupg lsb-release apt-transport-https
+
+echo -e "${GRÜN}=== [3/7] Netzwerkschnittstelle ermitteln... ===${NC}"
 NET_IFACE=$(ip -o -4 route show to default | awk '{print $5}')
 echo "→ Interface erkannt: $NET_IFACE"
 
-echo "=== [4/7] Promiscuous Mode aktivieren... ==="
+echo -e "${GRÜN}=== [4/7] Promiscuous Mode aktivieren... ===${NC}"
 sudo ip link set "$NET_IFACE" promisc on
 echo "→ Promiscuous Mode aktiviert auf $NET_IFACE"
 
-echo "=== [5/7] ntopng Repository & Key hinzufügen... ==="
-wget https://packages.ntop.org/apt/ntop.key
-sudo apt-key add ntop.key
-echo "deb https://packages.ntop.org/apt/$(lsb_release -cs)/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/ntopng.list
+echo -e "${GRÜN}=== [5/7] ntopng Repository & Key hinzufügen... ===${NC}"
+wget https://packages.ntop.org/apt-stable/$(lsb_release -rs)/all/apt-ntop-stable.deb
+sudo apt-get install ./apt-ntop-stable.deb
 
-echo "=== [6/7] ntopng & Abhängigkeiten installieren... ==="
-sudo apt update
-sudo apt install -y ntopng pfring nprobe n2disk cento
+echo -e "${GRÜN}=== [6/7] ntopng & Abhängigkeiten installieren... ===${NC}"
+sudo apt-get update
+sudo apt-get install -y pfring-dkms nprobe ntopng n2disk cento
 
-echo "=== [7/7] ntopng konfigurieren... ==="
+echo -e "${GRÜN}=== [7/7] ntopng konfigurieren... ===${NC}"
+sudo mkdir -p /etc/ntopng
 sudo tee /etc/ntopng/ntopng.conf > /dev/null <<EOF
 -G=/var/run/ntopng.pid
 -i=$NET_IFACE
@@ -31,10 +35,9 @@ sudo tee /etc/ntopng/ntopng.conf > /dev/null <<EOF
 --community
 EOF
 
+echo -e "${GRÜN}=== ntopng Dienst starten und aktivieren ===${NC}"
 sudo systemctl enable ntopng
-sudo systemctl restart ntopng
+sudo systemctl start ntopng
 
-IP=$(hostname -I | awk '{print $1}')
-echo ""
-echo "✅ Installation abgeschlossen!"
-echo "🔗 ntopng ist erreichbar unter: http://$IP:3000"
+echo -e "${GRÜN}✅ Installation abgeschlossen!${NC}"
+echo -e "🔗 ntopng ist erreichbar unter: http://$(hostname -I | awk '{print $1}'):3000"
