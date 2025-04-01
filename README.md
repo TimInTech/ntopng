@@ -14,6 +14,7 @@ chmod +x install-ntopng.sh
 sudo nano /etc/systemd/system/promisc.service
 ```
 ---
+.ini
 ```
 [Unit]
 Description=Setzt Promiscuous Mode auf Interface
